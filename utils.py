@@ -15,7 +15,46 @@ import json
 import os, re
 import logging
 
-logging.basicConfig(level=logging.INFO)
+
+"""通过handler控制输出console以及log file的输出格式
+format参数中可能用到的格式化串：
+%(name)s             Logger的名字
+%(levelno)s          数字形式的日志级别
+%(levelname)s     文本形式的日志级别
+%(pathname)s     调用日志输出函数的模块的完整路径名，可能没有
+%(filename)s        调用日志输出函数的模块的文件名
+%(module)s          调用日志输出函数的模块名
+%(funcName)s     调用日志输出函数的函数名
+%(lineno)d           调用日志输出函数的语句所在的代码行
+%(created)f          当前时间，用UNIX标准的表示时间的浮 点数表示
+%(relativeCreated)d    输出日志信息时的，自Logger创建以 来的毫秒数
+%(asctime)s                字符串形式的当前时间。默认格式是 “2003-07-08 16:49:45,896”。逗号后面的是毫秒
+%(thread)d                 线程ID。可能没有
+%(threadName)s        线程名。可能没有
+%(process)d              进程ID。可能没有
+%(message)s            用户输出的消息
+"""
+# logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
+logger.setLevel('DEBUG')
+
+BASIC_FORMAT = "%(asctime)s:%(levelname)s:%(message)s"
+DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
+formatter = logging.Formatter(BASIC_FORMAT, DATE_FORMAT)
+
+chlr = logging.StreamHandler()  # 输出到控制台的handler
+chlr.setFormatter(formatter)
+chlr.setLevel('INFO')  # 也可以不设置，不设置就默认用logger的level
+# fhlr = logging.FileHandler('example.log')  # 输出到文件的handler
+# fhlr.setFormatter(formatter)
+
+logger.addHandler(chlr)
+# logger.addHandler(fhlr)
+
+logger.info('this is info')
+logger.debug('this is debug')
+logger.info("test logging format")
+
 
 def calc_num_batches(total_num, batch_size):
     '''Calculates the number of batches.
@@ -26,6 +65,7 @@ def calc_num_batches(total_num, batch_size):
     number of batches, allowing for remainders.'''
     return total_num // batch_size + int(total_num % batch_size != 0)
 
+
 def convert_idx_to_token_tensor(inputs, idx2token):
     '''Converts int32 tensor to string tensor.
     inputs: 1d int32 tensor. indices.
@@ -34,10 +74,12 @@ def convert_idx_to_token_tensor(inputs, idx2token):
     Returns
     1d string tensor.
     '''
+
     def my_func(inputs):
         return " ".join(idx2token[elem] for elem in inputs)
 
     return tf.py_func(my_func, [inputs], tf.string)
+
 
 # # def pad(x, maxlen):
 # #     '''Pads x, list of sequences, and make it as a numpy array.
@@ -69,9 +111,10 @@ def postprocess(hypotheses, idx2token):
     for h in hypotheses:
         sent = "".join(idx2token[idx] for idx in h)
         sent = sent.split("</s>")[0].strip()
-        sent = sent.replace("▁", " ") # remove bpe symbols
+        sent = sent.replace("▁", " ")  # remove bpe symbols
         _hypotheses.append(sent.strip())
     return _hypotheses
+
 
 def save_hparams(hparams, path):
     '''Saves hparams to path
@@ -86,6 +129,7 @@ def save_hparams(hparams, path):
     with open(os.path.join(path, "hparams"), 'w') as fout:
         fout.write(hp)
 
+
 def load_hparams(parser, path):
     '''Loads hparams and overrides parser
     parser: argsparse parser
@@ -98,6 +142,7 @@ def load_hparams(parser, path):
     for f, v in flag2val.items():
         parser.f = v
 
+
 def save_variable_specs(fpath):
     '''Saves information about variables such as
     their name, shape, and total parameter number
@@ -106,6 +151,7 @@ def save_variable_specs(fpath):
     Writes
     a text file named fpath.
     '''
+
     def _get_size(shp):
         '''Gets size of tensor shape
         shp: TensorShape
@@ -115,7 +161,7 @@ def save_variable_specs(fpath):
         '''
         size = 1
         for d in range(len(shp)):
-            size *=shp[d]
+            size *= shp[d]
         return size
 
     params, num_params = [], 0
@@ -127,6 +173,7 @@ def save_variable_specs(fpath):
         fout.write("num_params: {}\n".format(num_params))
         fout.write("\n".join(params))
     logging.info("Variables info has been saved.")
+
 
 def get_hypotheses(num_batches, num_samples, sess, tensor, dict):
     '''Gets hypotheses.
@@ -147,6 +194,7 @@ def get_hypotheses(num_batches, num_samples, sess, tensor, dict):
 
     return hypotheses[:num_samples]
 
+
 def calc_bleu(ref, translation):
     '''Calculates bleu score and appends the report to translation
     ref: reference file path
@@ -165,16 +213,12 @@ def calc_bleu(ref, translation):
         os.system("mv {} {}".format(translation, new_translation))
         os.remove(translation)
 
-    except: pass
+    except:
+        pass
     os.remove("temp")
-
 
 # def get_inference_variables(ckpt, filter):
 #     reader = pywrap_tensorflow.NewCheckpointReader(ckpt)
 #     var_to_shape_map = reader.get_variable_to_shape_map()
 #     vars = [v for v in sorted(var_to_shape_map) if filter not in v]
 #     return vars
-
-
-
-
