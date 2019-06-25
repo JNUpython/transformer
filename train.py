@@ -36,15 +36,16 @@ eval_batches, num_eval_batches, num_eval_samples = get_batch(hp.eval1, hp.eval2,
                                              shuffle=False)
 
 # create a iterator of the correct shape and type
+# create
 iter = tf.data.Iterator.from_structure(train_batches.output_types, train_batches.output_shapes)
-xs, ys = iter.get_next()
-
+xs, ys = iter.get_next()   # 、？？
+# initial
 train_init_op = iter.make_initializer(train_batches)
 eval_init_op = iter.make_initializer(eval_batches)
 
 logging.info("# Load model")
 m = Transformer(hp)
-loss, train_op, global_step, train_summaries = m.train(xs, ys)
+loss, train_op, global_step, train_summaries = m.train(xs, ys)  #？？？
 y_hat, eval_summaries = m.eval(xs, ys)
 # y_hat = m.infer(xs, ys)
 

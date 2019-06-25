@@ -117,6 +117,7 @@ def prepro(hp):
 
 
 if __name__ == '__main__':
+    # 定义参数 --para
     hparams = Hparams()
     parser = hparams.parser
     hp = parser.parse_args()

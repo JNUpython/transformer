@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#/usr/bin/python3
+# /usr/bin/python3
 '''
 Feb. 2019 by kyubyong park.
 kbpark.linguist@gmail.com.
@@ -12,6 +12,7 @@ For example, fpath1, fpath2 means source file path and target file path, respect
 import tensorflow as tf
 from utils import calc_num_batches
 
+
 def load_vocab(vocab_fpath):
     '''Loads vocabulary file and returns idx<->token maps
     vocab_fpath: string. vocabulary file path.
@@ -21,10 +22,11 @@ def load_vocab(vocab_fpath):
     Returns
     two dictionaries.
     '''
-    vocab = [line.split()[0] for line in open(vocab_fpath, 'r').read().splitlines()]
+    vocab = [line.split()[0] for line in open(vocab_fpath, 'r', encoding="utf-8").read().splitlines()]
     token2idx = {token: idx for idx, token in enumerate(vocab)}
     idx2token = {idx: token for idx, token in enumerate(vocab)}
     return token2idx, idx2token
+
 
 def load_data(fpath1, fpath2, maxlen1, maxlen2):
     '''Loads source and target data and filters out too lengthy samples.
@@ -38,9 +40,9 @@ def load_data(fpath1, fpath2, maxlen1, maxlen2):
     sents2: list of target sents
     '''
     sents1, sents2 = [], []
-    with open(fpath1, 'r') as f1, open(fpath2, 'r') as f2:
+    with open(fpath1, 'r', encoding="utf-8") as f1, open(fpath2, 'r', encoding="utf-8") as f2:
         for sent1, sent2 in zip(f1, f2):
-            if len(sent1.split()) + 1 > maxlen1: continue # 1: </s>
+            if len(sent1.split()) + 1 > maxlen1: continue  # 1: </s>
             if len(sent2.split()) + 1 > maxlen2: continue  # 1: </s>
             sents1.append(sent1.strip())
             sents2.append(sent2.strip())
@@ -57,11 +59,15 @@ def encode(inp, type, dict):
     list of numbers
     '''
     inp_str = inp.decode("utf-8")
-    if type=="x": tokens = inp_str.split() + ["</s>"]
-    else: tokens = ["<s>"] + inp_str.split() + ["</s>"]
+    if type == "x":
+        tokens = inp_str.split() + ["</s>"]
+    else:
+        # 输出y 两边均给出<s>
+        tokens = ["<s>"] + inp_str.split() + ["</s>"]
 
     x = [dict.get(t, dict["<unk>"]) for t in tokens]
     return x
+
 
 def generator_fn(sents1, sents2, vocab_fpath):
     '''Generates training / evaluation data
@@ -84,10 +90,12 @@ def generator_fn(sents1, sents2, vocab_fpath):
     for sent1, sent2 in zip(sents1, sents2):
         x = encode(sent1, "x", token2idx)
         y = encode(sent2, "y", token2idx)
+        # decoder_input 向前异动一位
         decoder_input, y = y[:-1], y[1:]
-
+        # x 和 decoder_input 作为模型的输入，y作为输出
         x_seqlen, y_seqlen = len(x), len(y)
         yield (x, x_seqlen, sent1), (decoder_input, y, y_seqlen, sent2)
+
 
 def input_fn(sents1, sents2, vocab_fpath, batch_size, shuffle=False):
     '''Batchify data
@@ -108,26 +116,29 @@ def input_fn(sents1, sents2, vocab_fpath, batch_size, shuffle=False):
         y_seqlen: int32 tensor. (N, )
         sents2: str tensor. (N,)
     '''
+    # 为什么输出和输出长度不确定需要用None，自行根据最长的长度填充？？
+
     shapes = (([None], (), ()),
               ([None], [None], (), ()))
     types = ((tf.int32, tf.int32, tf.string),
              (tf.int32, tf.int32, tf.int32, tf.string))
     paddings = ((0, 0, ''),
                 (0, 0, 0, ''))
-
+    # 尽量采用此方法生成数据
     dataset = tf.data.Dataset.from_generator(
         generator_fn,
         output_shapes=shapes,
         output_types=types,
         args=(sents1, sents2, vocab_fpath))  # <- arguments for generator_fn. converted to np string arrays
 
-    if shuffle: # for training
-        dataset = dataset.shuffle(128*batch_size)
+    if shuffle:  # for training
+        dataset = dataset.shuffle(128 * batch_size)  # buffer size
 
     dataset = dataset.repeat()  # iterate forever
-    dataset = dataset.padded_batch(batch_size, shapes, paddings).prefetch(1)
+    dataset = dataset.padded_batch(batch_size, shapes, paddings).prefetch(1) # ???
 
     return dataset
+
 
 def get_batch(fpath1, fpath2, maxlen1, maxlen2, vocab_fpath, batch_size, shuffle=False):
     '''Gets training / evaluation mini-batches
@@ -144,7 +155,9 @@ def get_batch(fpath1, fpath2, maxlen1, maxlen2, vocab_fpath, batch_size, shuffle
     num_batches: number of mini-batches
     num_samples
     '''
+    # 输入信号和输出信号
     sents1, sents2 = load_data(fpath1, fpath2, maxlen1, maxlen2)
     batches = input_fn(sents1, sents2, vocab_fpath, batch_size, shuffle=shuffle)
+    # 计算总batch的数量
     num_batches = calc_num_batches(len(sents1), batch_size)
     return batches, num_batches, len(sents1)

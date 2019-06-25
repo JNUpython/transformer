@@ -15,7 +15,6 @@ import json
 import os, re
 import logging
 
-
 """通过handler控制输出console以及log file的输出格式
 format参数中可能用到的格式化串：
 %(name)s             Logger的名字
@@ -35,10 +34,8 @@ format参数中可能用到的格式化串：
 %(message)s            用户输出的消息
 """
 # logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger()
-logger.setLevel('DEBUG')
 
-BASIC_FORMAT = "%(asctime)s:%(levelname)s:%(message)s"
+BASIC_FORMAT = "%(asctime)s:%(levelname)s: %(filename)s(%(lineno)d ) %(message)s"
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 formatter = logging.Formatter(BASIC_FORMAT, DATE_FORMAT)
 
@@ -48,6 +45,8 @@ chlr.setLevel('INFO')  # 也可以不设置，不设置就默认用logger的leve
 # fhlr = logging.FileHandler('example.log')  # 输出到文件的handler
 # fhlr.setFormatter(formatter)
 
+logger = logging.getLogger()
+logger.setLevel('DEBUG')
 logger.addHandler(chlr)
 # logger.addHandler(fhlr)
 

@@ -17,8 +17,11 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
+
 class Transformer:
     '''
+    N 代表样本长度
+    T 代表序列的最大长度
     xs: tuple of
         x: int32 tensor. (N, T1)
         x_seqlens: int32 tensor. (N,)
@@ -30,9 +33,11 @@ class Transformer:
         sents2: str tensor. (N,)
     training: boolean.
     '''
+
     def __init__(self, hp):
         self.hp = hp
         self.token2idx, self.idx2token = load_vocab(hp.vocab)
+        # embedding 层的权重
         self.embeddings = get_token_embeddings(self.hp.vocab_size, self.hp.d_model, zero_pad=True)
 
     def encode(self, xs, training=True):
@@ -41,16 +46,19 @@ class Transformer:
         memory: encoder outputs. (N, T1, d_model)
         '''
         with tf.variable_scope("encoder", reuse=tf.AUTO_REUSE):
+            # 序列化编码x，句子的真实长度，原始字符串
             x, seqlens, sents1 = xs
 
             # embedding
-            enc = tf.nn.embedding_lookup(self.embeddings, x) # (N, T1, d_model)
-            enc *= self.hp.d_model**0.5 # scale
+            enc = tf.nn.embedding_lookup(self.embeddings, x)  # (N, T1, d_model)
+            enc *= self.hp.d_model ** 0.5  # scale ？？？
 
+            # 添加position embedding
             enc += positional_encoding(enc, self.hp.maxlen1)
+            # embedding 后添加dropout
             enc = tf.layers.dropout(enc, self.hp.dropout_rate, training=training)
 
-            ## Blocks
+            ## Blocks：encode的深度
             for i in range(self.hp.num_blocks):
                 with tf.variable_scope("num_blocks_{}".format(i), reuse=tf.AUTO_REUSE):
                     # self-attention
@@ -111,9 +119,9 @@ class Transformer:
                     ### Feed Forward
                     dec = ff(dec, num_units=[self.hp.d_ff, self.hp.d_model])
 
-        # Final linear projection (embedding weights are shared)
-        weights = tf.transpose(self.embeddings) # (d_model, vocab_size)
-        logits = tf.einsum('ntd,dk->ntk', dec, weights) # (N, T2, vocab_size)
+        # Final linear projection (embedding weights are shared) ？？？？ 这么做不懂啊
+        weights = tf.transpose(self.embeddings)  # (d_model, vocab_size)
+        logits = tf.einsum('ntd,dk->ntk', dec, weights)  # (N, T2, vocab_size)
         y_hat = tf.to_int32(tf.argmax(logits, axis=-1))
 
         return logits, y_hat, y, sents2
@@ -171,7 +179,7 @@ class Transformer:
             ys = (_decoder_inputs, y, y_seqlen, sents2)
 
         # monitor a random sample
-        n = tf.random_uniform((), 0, tf.shape(y_hat)[0]-1, tf.int32)
+        n = tf.random_uniform((), 0, tf.shape(y_hat)[0] - 1, tf.int32)
         sent1 = sents1[n]
         pred = convert_idx_to_token_tensor(y_hat[n], self.idx2token)
         sent2 = sents2[n]
@@ -182,4 +190,3 @@ class Transformer:
         summaries = tf.summary.merge_all()
 
         return y_hat, summaries
-
