@@ -35,7 +35,7 @@ format参数中可能用到的格式化串：
 """
 # logging.basicConfig(level=logging.INFO)
 
-BASIC_FORMAT = "%(asctime)s:%(levelname)s: %(filename)s(%(lineno)d ) %(message)s"
+BASIC_FORMAT = "%(asctime)s:%(levelname)s: %(filename)s(%(lineno)d) %(message)s"
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 formatter = logging.Formatter(BASIC_FORMAT, DATE_FORMAT)
 
@@ -48,11 +48,13 @@ chlr.setLevel('INFO')  # 也可以不设置，不设置就默认用logger的leve
 logger = logging.getLogger()
 logger.setLevel('DEBUG')
 logger.addHandler(chlr)
+
+
 # logger.addHandler(fhlr)
 
-logger.info('this is info')
-logger.debug('this is debug')
-logger.info("test logging format")
+# logger.info('this is info')
+# logger.debug('this is debug')
+# logger.info("test logging format")
 
 
 def calc_num_batches(total_num, batch_size):
@@ -102,7 +104,7 @@ def postprocess(hypotheses, idx2token):
     '''Processes translation outputs.
     hypotheses: list of encoded predictions
     idx2token: dictionary
-
+    将编号的句子编译成日常词汇构成的语句
     Returns
     processed hypotheses
     '''
@@ -123,10 +125,12 @@ def save_hparams(hparams, path):
     Writes
     hparams as literal dictionary to path.
     '''
-    if not os.path.exists(path): os.makedirs(path)
+    if not os.path.exists(path):
+        os.makedirs(path)
     hp = json.dumps(vars(hparams))
     with open(os.path.join(path, "hparams"), 'w') as fout:
         fout.write(hp)
+        fout.close()
 
 
 def load_hparams(parser, path):
@@ -138,6 +142,7 @@ def load_hparams(parser, path):
         path = os.path.dirname(path)
     d = open(os.path.join(path, "hparams"), 'r').read()
     flag2val = json.loads(d)
+    # 这也行？？？？？？
     for f, v in flag2val.items():
         parser.f = v
 
@@ -221,3 +226,9 @@ def calc_bleu(ref, translation):
 #     var_to_shape_map = reader.get_variable_to_shape_map()
 #     vars = [v for v in sorted(var_to_shape_map) if filter not in v]
 #     return vars
+
+
+# if __name__ == '__main__':
+#     from hparams import Hparams
+#     hp = Hparams()
+#     save_hparams(hp.parser, "paras")

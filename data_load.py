@@ -161,3 +161,10 @@ def get_batch(fpath1, fpath2, maxlen1, maxlen2, vocab_fpath, batch_size, shuffle
     # 计算总batch的数量
     num_batches = calc_num_batches(len(sents1), batch_size)
     return batches, num_batches, len(sents1)
+
+
+if __name__ == '__main__':
+    from hparams import Hparams
+    hp = Hparams().parser.parse_args()
+    token2idx, idx2token = load_vocab(hp.vocab)
+    print(token2idx)

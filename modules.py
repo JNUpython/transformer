@@ -46,6 +46,7 @@ def get_token_embeddings(vocab_size, num_units, zero_pad=True):
     weight variable: (V, E)
     '''
     with tf.variable_scope("shared_weight_matrix"):
+        # 分享的变量没有 reuse???
         embeddings = tf.get_variable('weight_mat',
                                      dtype=tf.float32,
                                      shape=(vocab_size, num_units),
