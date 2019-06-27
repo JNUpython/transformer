@@ -135,7 +135,7 @@ def input_fn(sents1, sents2, vocab_fpath, batch_size, shuffle=False):
         dataset = dataset.shuffle(128 * batch_size)  # buffer size
 
     dataset = dataset.repeat()  # iterate forever
-    dataset = dataset.padded_batch(batch_size, shapes, paddings).prefetch(1) # ???
+    dataset = dataset.padded_batch(batch_size, shapes, paddings).prefetch(1) # ??? 将一个batch作为一个迭代
 
     return dataset
 

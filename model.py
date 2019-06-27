@@ -14,6 +14,7 @@ from modules import get_token_embeddings, ff, positional_encoding, multihead_att
 from utils import convert_idx_to_token_tensor
 from tqdm import tqdm
 import logging
+from utils import logger
 
 logging.basicConfig(level=logging.INFO)
 
@@ -37,7 +38,7 @@ class Transformer:
     def __init__(self, hp):
         self.hp = hp
         self.token2idx, self.idx2token = load_vocab(hp.vocab)
-        # embedding 层的权重
+        # embedding 层的权重， 两个不同种类的语言恶魔bedding共享？？？？？？
         self.embeddings = get_token_embeddings(self.hp.vocab_size, self.hp.d_model, zero_pad=True)
 
     def encode(self, xs, training=True):
@@ -119,7 +120,7 @@ class Transformer:
                     ### Feed Forward
                     dec = ff(dec, num_units=[self.hp.d_ff, self.hp.d_model])
 
-        # Final linear projection (embedding weights are shared) ？？？？ 这么做不懂啊
+        # Final linear projection (embedding weights are shared) ？？？？ 这么做不懂啊, 灭有bias
         weights = tf.transpose(self.embeddings)  # (d_model, vocab_size)
         logits = tf.einsum('ntd,dk->ntk', dec, weights)  # (N, T2, vocab_size)
         y_hat = tf.to_int32(tf.argmax(logits, axis=-1))
@@ -165,16 +166,24 @@ class Transformer:
         '''
         decoder_inputs, y, y_seqlen, sents2 = ys
 
+        # 输出仅仅知道第一个为<s>
+        # 当前仅仅知道第一个decode的输出为<s> , 不需要padding？？？？
         decoder_inputs = tf.ones((tf.shape(xs[0])[0], 1), tf.int32) * self.token2idx["<s>"]
+
+        logger.info(decoder_inputs)
         ys = (decoder_inputs, y, y_seqlen, sents2)
 
         memory, sents1 = self.encode(xs, False)
 
         logging.info("Inference graph is being built. Please be patient.")
         for _ in tqdm(range(self.hp.maxlen2)):
+            # 将每次的预测结果作为下一次的输入
             logits, y_hat, y, sents2 = self.decode(ys, memory, False)
-            if tf.reduce_sum(y_hat, 1) == self.token2idx["<pad>"]: break
+            #
+            if tf.reduce_sum(y_hat, 1) == self.token2idx["<pad>"]:
+                break
 
+            # 前面预测结果结果结合当前的预测结果作为下一次的输出
             _decoder_inputs = tf.concat((decoder_inputs, y_hat), 1)
             ys = (_decoder_inputs, y, y_seqlen, sents2)
 

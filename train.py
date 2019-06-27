@@ -45,7 +45,7 @@ eval_batches, num_eval_batches, num_eval_samples = get_batch(hp.eval1, hp.eval2,
 logger.info(train_batches.output_types)
 logger.info(train_batches.output_shapes)
 iter = tf.data.Iterator.from_structure(train_batches.output_types, train_batches.output_shapes)
-xs, ys = iter.get_next()   # 、？？
+xs, ys = iter.get_next()   # 、？？  # 通过session.run()  获得一个batch
 logger.info(xs)
 logger.info(ys)
 # initial
@@ -57,7 +57,7 @@ logger.info(ys)
 
 logger.info("# Load model")
 m = Transformer(hp)
-loss, train_op, global_step, train_summaries = m.train(xs, ys)  #？？？
+loss, train_op, global_step, train_summaries = m.train(xs, ys)  # 输入数据和训练结合， train_op 为optimizer
 y_hat, eval_summaries = m.eval(xs, ys)
 # y_hat = m.infer(xs, ys)
 
@@ -72,12 +72,15 @@ with tf.Session() as sess:
     else:
         saver.restore(sess, ckpt)
 
+    # create a writer
     summary_writer = tf.summary.FileWriter(hp.logdir, sess.graph)
 
-    sess.run(train_init_op)
+    sess.run(train_init_op) # 将数据加载到dataIter
+
     total_steps = hp.num_epochs * num_train_batches
     _gs = sess.run(global_step)
     for i in tqdm(range(_gs, total_steps+1)):
+        # session.run 可以直接获取batchdata 以及 loss
         _, _gs, _summary = sess.run([train_op, global_step, train_summaries])
         epoch = math.ceil(_gs / num_train_batches)
         summary_writer.add_summary(_summary, _gs)
@@ -113,4 +116,4 @@ with tf.Session() as sess:
     summary_writer.close()
 
 
-logging.info("Done")
+logger.info("Done")
